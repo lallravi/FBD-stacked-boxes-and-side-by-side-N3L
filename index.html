@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated FBD Lessons</title>
+    <style>
+        :root {
+            /* --- Physics Variables (Problem 1: Stacked) --- */
+            --gB-height: 100px;
+            --gA-height: 150px;
+            --Nab-height: var(--gB-height);
+            --Nba-height: var(--Nab-height);
+            --Nta-height: calc(var(--gA-height) + var(--Nba-height));
+            
+            /* --- Physics Variables (Problem 2: Side-by-Side) --- */
+            --gA2-height: 80px;  /* A is smaller */
+            --gB2-height: 140px; /* B is bigger */
+            --NA-height: var(--gA2-height);
+            --NB-height: var(--gB2-height);
+            --fA-width: 40px; /* Friction on smaller box */
+            --fB-width: 70px; /* Friction on bigger box */
+            --FAB-width: var(--fB-width); /* F_A_on_B must balance friction on B */
+            --FBA-width: var(--FAB-width); /* N3L Pair */
+            --FHand-width: calc(var(--FBA-width) + var(--fA-width)); /* Hand push balances F_B_on_A and friction on A */
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+
+        .lesson-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            box-sizing: border-box;
+            border-bottom: 10px solid #e0e0e0; /* Separator for the next problem */
+        }
+
+        .main-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a237e;
+            padding: 15px 10px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #ddd;
+            background-color: #f8f9fa;
+            flex-shrink: 0;
+        }
+        .main-title img {
+            height: 45px;
+            margin-right: 20px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 2vw 3vw;
+            overflow: hidden;
+        }
+
+        .sketch-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .table-surface { width: 90%; height: 20px; background: #a1887f; border-radius: 5px; }
+        .box { display: grid; place-items: center; font-size: 2.5em; font-weight: bold; color: white; border: 2px solid rgba(0,0,0,0.2); box-shadow: inset 0 0 15px rgba(0,0,0,0.3); }
+        
+        /* Problem 1 Boxes */
+        #box-a { width: 250px; height: var(--gA-height); background-color: #1565c0; }
+        #box-b { width: 200px; height: var(--gB-height); background-color: #c62828; margin-bottom: 2px; }
+        
+        /* Problem 2 Boxes */
+        .side-by-side { display: flex; align-items: flex-end; }
+        #box-a2 { width: 120px; height: var(--gA2-height); background-color: #1565c0; margin-right: 2px;}
+        #box-b2 { width: 180px; height: var(--gB2-height); background-color: #c62828; }
+        .hand { width: 60px; height: 100px; background: #ffcc80; border: 2px solid #e65100; border-radius: 10px; margin-right: -10px; z-index: 10;}
+
+        .fbd-container { position: relative; background: #263238; border-radius: 10px; overflow: hidden; }
+        .fbd-dot { width: 25px; height: 25px; border-radius: 50%; position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 10; }
+        .fbd-title { position: absolute; width: 100%; text-align: center; top: 20px; font-size: 1.8em; color: #fff; font-weight: bold; }
+        
+        .vector { position: absolute; opacity: 0; transform-origin: center; transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out, box-shadow 0.4s ease-in-out; }
+        .vector.visible { opacity: 1; }
+        .vector.highlight { box-shadow: 0 0 20px 8px #03dac6; }
+        .vector-label { position: absolute; color: white; font-size: 1.5em; font-family: 'Courier New', monospace; opacity: 0; transition: opacity 0.5s 0.2s, color 0.4s ease-in-out; }
+        .vector-label.visible { opacity: 1; }
+        .vector-label.highlight { color: #03dac6; }
+        
+        /* Arrowheads */
+        .vector::after { content: ''; position: absolute; width: 0; height: 0; border: 12px solid transparent; }
+        .up::after { top: -18px; left: 50%; transform: translateX(-50%); border-bottom: 18px solid white; }
+        .down::after { bottom: -18px; left: 50%; transform: translateX(-50%); border-top: 18px solid white; }
+        .right::after { right: -18px; top: 50%; transform: translateY(-50%); border-left: 18px solid white; }
+        .left::after { left: -18px; top: 50%; transform: translateY(-50%); border-right: 18px solid white; }
+
+        /* Problem 1 Vectors */
+        #dot-b { background-color: #c62828; left: 35%; } #dot-a { background-color: #1565c0; left: 65%; }
+        .v-vector { width: 6px; }
+        #vector-Nab { bottom: 50%; left: 35%; height: var(--Nab-height); background: #29b6f6; }
+        #label-Nab { right: 70%; bottom: calc(50% + var(--Nab-height)/2); }
+        #vector-gB { top: 50%; left: 35%; height: var(--gB-height); background: #fdd835; }
+        #label-gB { left: 40%; top: calc(50% + var(--gB-height)/2); }
+        #vector-Nta { bottom: 50%; left: 65%; height: var(--Nta-height); background: #29b6f6; }
+        #label-Nta { right: 40%; bottom: calc(50% + var(--Nta-height)/2); }
+        #vector-Nba { top: 50%; left: 65%; height: var(--Nba-height); background: #ef5350; }
+        #label-Nba { left: 70%; top: calc(50% + 20px); }
+        #vector-gA { top: calc(50% + var(--Nba-height) + 2px); left: 65%; height: var(--gA-height); background: #fdd835; }
+        #label-gA { left: 70%; top: calc(50% + var(--Nba-height) + var(--gA-height)/2); }
+
+        /* Problem 2 Vectors */
+        #dot-b2 { background-color: #c62828; left: 70%; } #dot-a2 { background-color: #1565c0; left: 30%; }
+        .h-vector { height: 6px; top: 50%; transform: translateY(-50%); }
+        #vector-Na { bottom: 50%; left: 30%; height: var(--NA-height); background: #29b6f6; }
+        #label-Na { right: 75%; bottom: calc(50% + var(--NA-height)/2); }
+        #vector-ga { top: 50%; left: 30%; height: var(--gA2-height); background: #fdd835; }
+        #label-ga { right: 75%; top: calc(50% + var(--gA2-height)/2); }
+        #vector-Fha { left: 30%; width: var(--FHand-width); background: #81c784; }
+        #label-Fha { left: calc(30% + 5px); top: 38%; }
+        #vector-Fba { left: calc(30% - var(--FBA-width)); width: var(--FBA-width); background: #ef5350; }
+        #label-Fba { right: calc(70% + 5px); top: 38%; }
+        #vector-fa { left: calc(30% - var(--FBA-width) - var(--fA-width)); width: var(--fA-width); background: #ffab91; }
+        #label-fa { right: calc(70% + var(--FBA-width) + 5px); top: 60%; }
+        #vector-Nb { bottom: 50%; left: 70%; height: var(--NB-height); background: #29b6f6; }
+        #label-Nb { right: 35%; bottom: calc(50% + var(--NB-height)/2); }
+        #vector-gb { top: 50%; left: 70%; height: var(--gB2-height); background: #fdd835; }
+        #label-gb { right: 35%; top: calc(50% + var(--gB2-height)/2); }
+        #vector-Fab { left: 70%; width: var(--FAB-width); background: #ef5350; }
+        #label-Fab { left: calc(70% + 5px); top: 38%; }
+        #vector-fb { left: calc(70% - var(--fB-width)); width: var(--fB-width); background: #ffab91; }
+        #label-fb { right: calc(30% + 5px); top: 60%; }
+
+        .explanation-container { grid-column: 1 / -1; background: #e3f2fd; border-left: 5px solid #1976d2; padding: 10px 25px; font-size: 1.4em; text-align: center; margin: 0 30px; }
+        .nav-container { display: flex; justify-content: center; gap: 20px; padding: 20px 0; background-color: #fff; border-top: 2px solid #e0e0e0; flex-shrink: 0;}
+        .button { padding: 15px 40px; font-size: 1.4em; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-weight: bold; }
+        .button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .button:disabled { background-color: #cccccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        #nextBtn, #nextBtn2 { background-color: #0d47a1; color: white; }
+        #resetBtn, #resetBtn2 { background-color: #e0e0e0; color: #333; }
+        
+    </style>
+</head>
+<body>
+
+    <div class="lesson-container">
+        <h1 class="main-title"><img src="lr-1.png" alt="Logo">Problem 1: Stacked Boxes</h1>
+        <div class="main-content">
+            <div class="sketch-container">
+                <div id="box-b" class="box">B</div>
+                <div id="box-a" class="box">A</div>
+                <div class="table-surface"></div>
+            </div>
+            <div class="fbd-container">
+                <div class="fbd-title">Free-Body Diagrams</div>
+                <div id="dot-b" class="fbd-dot"></div><div id="dot-a" class="fbd-dot"></div>
+                <div id="vector-Nab" class="vector v-vector up"></div><span id="label-Nab" class="vector-label">N<sub>A on B</sub></span>
+                <div id="vector-gB" class="vector v-vector down"></div><span id="label-gB" class="vector-label">g<sub>Earth on B</sub></span>
+                <div id="vector-Nta" class="vector v-vector up"></div><span id="label-Nta" class="vector-label">N<sub>Table on A</sub></span>
+                <div id="vector-Nba" class="vector v-vector down"></div><span id="label-Nba" class="vector-label">N<sub>B on A</sub></span>
+                <div id="vector-gA" class="vector v-vector down"></div><span id="label-gA" class="vector-label">g<sub>Earth on A</sub></span>
+            </div>
+        </div>
+        <div class="explanation-container"><p id="explanation-text">Let's analyze the forces step-by-step, starting with <strong>Box B</strong>. Click "Next" to begin.</p></div>
+        <div class="nav-container"><button id="resetBtn" class="button">Reset</button><button id="nextBtn" class="button">Next &rarr;</button></div>
+    </div>
+
+    <div class="lesson-container">
+        <h1 class="main-title"><img src="lr-1.png" alt="Logo">Problem 2: Side-by-Side Boxes (Constant Speed)</h1>
+        <div class="main-content">
+            <div class="sketch-container">
+                <div class="side-by-side">
+                    <div class="hand"></div>
+                    <div id="box-a2" class="box">A</div>
+                    <div id="box-b2" class="box">B</div>
+                </div>
+                <div class="table-surface"></div>
+            </div>
+            <div class="fbd-container">
+                <div class="fbd-title">Free-Body Diagrams</div>
+                <div id="dot-a2" class="fbd-dot"></div>
+                <div id="vector-Na" class="vector v-vector up"></div><span id="label-Na" class="vector-label">N<sub>on A</sub></span>
+                <div id="vector-ga" class="vector v-vector down"></div><span id="label-ga" class="vector-label">g<sub>on A</sub></span>
+                <div id="vector-Fha" class="vector h-vector right"></div><span id="label-Fha" class="vector-label">F<sub>Hand</sub></span>
+                <div id="vector-Fba" class="vector h-vector left"></div><span id="label-Fba" class="vector-label">F<sub>B on A</sub></span>
+                <div id="vector-fa" class="vector h-vector left"></div><span id="label-fa" class="vector-label">f<sub>on A</sub></span>
+                <div id="dot-b2" class="fbd-dot"></div>
+                <div id="vector-Nb" class="vector v-vector up"></div><span id="label-Nb" class="vector-label">N<sub>on B</sub></span>
+                <div id="vector-gb" class="vector v-vector down"></div><span id="label-gb" class="vector-label">g<sub>on B</sub></span>
+                <div id="vector-Fab" class="vector h-vector right"></div><span id="label-Fab" class="vector-label">F<sub>A on B</sub></span>
+                <div id="vector-fb" class="vector h-vector left"></div><span id="label-fb" class="vector-label">f<sub>on B</sub></span>
+            </div>
+        </div>
+        <div class="explanation-container"><p id="explanation-text2">New problem: A hand pushes Box A, which pushes Box B. They move together at a <strong>constant speed</strong>. Let's analyze <strong>Box A</strong> first. Click "Next".</p></div>
+        <div class="nav-container"><button id="resetBtn2" class="button">Reset</button><button id="nextBtn2" class="button">Next &rarr;</button></div>
+    </div>
+
+<script>
+    // --- SCRIPT FOR PROBLEM 1 ---
+    (() => {
+        let currentStep = 0;
+        const nextBtn = document.getElementById('nextBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const explanationText = document.getElementById('explanation-text');
+        const elements = ['vector-Nab', 'label-Nab', 'vector-gB', 'label-gB', 'vector-Nta', 'label-Nta', 'vector-Nba', 'label-Nba', 'vector-gA', 'label-gA'];
+        const steps = [
+            () => { explanationText.innerHTML = `Let's analyze the forces step-by-step, starting with <strong>Box B</strong>. Click "Next" to begin.`; },
+            () => { document.getElementById('vector-Nab').classList.add('visible'); document.getElementById('label-Nab').classList.add('visible'); explanationText.innerHTML = `<strong>Step 1 (on Box B):</strong> Box A pushes up on Box B. This is the <strong>Normal Force of A on B (N<sub>A on B</sub>)</strong>.`; },
+            () => { document.getElementById('vector-gB').classList.add('visible'); document.getElementById('label-gB').classList.add('visible'); explanationText.innerHTML = `<strong>Step 2 (on Box B):</strong> The Earth pulls Box B down with <strong>Gravity (g<sub>Earth on B</sub>)</strong>. These two forces are balanced.`; },
+            () => { document.getElementById('vector-Nta').classList.add('visible'); document.getElementById('label-Nta').classList.add('visible'); explanationText.innerHTML = `<strong>Step 3 (on Box A):</strong> Now for Box A. The table pushes up with a large <strong>Normal Force (N<sub>Table on A</sub>)</strong>.`; },
+            () => { document.getElementById('vector-Nba').classList.add('visible'); document.getElementById('label-Nba').classList.add('visible'); explanationText.innerHTML = `<strong>Step 4 (on Box A):</strong> Box B pushes down on Box A. This is the <strong>Normal Force of B on A (N<sub>B on A</sub>)</strong>.`; },
+            () => { document.getElementById('vector-gA').classList.add('visible'); document.getElementById('label-gA').classList.add('visible'); explanationText.innerHTML = `<strong>Step 5 (on Box A):</strong> The Earth pulls Box A down with its own <strong>Gravity (g<sub>Earth on A</sub>)</strong>. The FBDs are complete.`; },
+            () => {
+                document.getElementById('vector-Nab').classList.add('highlight'); document.getElementById('label-Nab').classList.add('highlight');
+                document.getElementById('vector-Nba').classList.add('highlight'); document.getElementById('label-Nba').classList.add('highlight');
+                explanationText.innerHTML = `<strong>FINAL STEP:</strong> The force of A on B (<strong>N<sub>A on B</sub></strong>) and the force of B on A (<strong>N<sub>B on A</sub></strong>) are a <strong>Newton's Third Law action-reaction pair</strong>. They are equal in magnitude and opposite in direction.`;
+                nextBtn.disabled = true;
+            }
+        ];
+        function nextStep() { if (currentStep < steps.length - 1) { currentStep++; steps[currentStep](); } }
+        function reset() {
+            currentStep = 0;
+            elements.forEach(id => { const el = document.getElementById(id); el.classList.remove('visible'); el.classList.remove('highlight'); });
+            steps[0](); nextBtn.disabled = false;
+        }
+        nextBtn.addEventListener('click', nextStep); resetBtn.addEventListener('click', reset);
+        reset();
+    })();
+
+    // --- SCRIPT FOR PROBLEM 2 ---
+    (() => {
+        let currentStep = 0;
+        const nextBtn = document.getElementById('nextBtn2');
+        const resetBtn = document.getElementById('resetBtn2');
+        const explanationText = document.getElementById('explanation-text2');
+        const elements = ['vector-Na', 'label-Na', 'vector-ga', 'label-ga', 'vector-Fha', 'label-Fha', 'vector-Fba', 'label-Fba', 'vector-fa', 'label-fa', 'vector-Nb', 'label-Nb', 'vector-gb', 'label-gb', 'vector-Fab', 'label-Fab', 'vector-fb', 'label-fb'];
+        const steps = [
+            () => { explanationText.innerHTML = `New problem: A hand pushes Box A, which pushes Box B. They move together at a <strong>constant speed</strong>. Let's analyze <strong>Box A</strong> first. Click "Next".`; },
+            () => {
+                document.getElementById('vector-Na').classList.add('visible'); document.getElementById('label-Na').classList.add('visible');
+                document.getElementById('vector-ga').classList.add('visible'); document.getElementById('label-ga').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 1 (on Box A):</strong> First, the vertical forces. Gravity (<strong>g<sub>on A</sub></strong>) pulls down, and the Normal Force (<strong>N<sub>on A</sub></strong>) pushes up. They are balanced.`;
+            },
+            () => {
+                document.getElementById('vector-Fha').classList.add('visible'); document.getElementById('label-Fha').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 2 (on Box A):</strong> The hand applies a pushing <strong>Force (F<sub>Hand</sub>)</strong> to the right.`;
+            },
+            () => {
+                document.getElementById('vector-Fba').classList.add('visible'); document.getElementById('label-Fba').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 3 (on Box A):</strong> Because it's touching Box B, Box B pushes back to the left. This is the <strong>Force of B on A (F<sub>B on A</sub>)</strong>.`;
+            },
+             () => {
+                document.getElementById('vector-fa').classList.add('visible'); document.getElementById('label-fa').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 4 (on Box A):</strong> The ground exerts a <strong>Friction (f<sub>on A</sub>)</strong> force to the left. Since speed is constant, the push from the hand is perfectly balanced by the two forces pushing left.`;
+            },
+             () => {
+                document.getElementById('vector-Nb').classList.add('visible'); document.getElementById('label-Nb').classList.add('visible');
+                document.getElementById('vector-gb').classList.add('visible'); document.getElementById('label-gb').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 5 (on Box B):</strong> Now for Box B. Its vertical forces, Gravity (<strong>g<sub>on B</sub></strong>) and Normal Force (<strong>N<sub>on B</sub></strong>), are also balanced.`;
+            },
+             () => {
+                document.getElementById('vector-Fab').classList.add('visible'); document.getElementById('label-Fab').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 6 (on Box B):</strong> Box A pushes Box B to the right with the <strong>Force of A on B (F<sub>A on B</sub>)</strong>.`;
+            },
+             () => {
+                document.getElementById('vector-fb').classList.add('visible'); document.getElementById('label-fb').classList.add('visible');
+                explanationText.innerHTML = `<strong>Step 7 (on Box B):</strong> The ground exerts <strong>Friction (f<sub>on B</sub>)</strong> to the left. Since speed is constant, these two horizontal forces are balanced.`;
+            },
+            () => {
+                document.getElementById('vector-Fab').classList.add('highlight'); document.getElementById('label-Fab').classList.add('highlight');
+                document.getElementById('vector-Fba').classList.add('highlight'); document.getElementById('label-Fba').classList.add('highlight');
+                explanationText.innerHTML = `<strong>FINAL STEP:</strong> The force of B on A (<strong>F<sub>B on A</sub></strong>) and the force of A on B (<strong>F<sub>A on B</sub></strong>) are a <strong>Newton's Third Law action-reaction pair</strong>. Note they are equal in magnitude.`;
+                nextBtn.disabled = true;
+            }
+        ];
+        function nextStep() { if (currentStep < steps.length - 1) { currentStep++; steps[currentStep](); } }
+        function reset() {
+            currentStep = 0;
+            elements.forEach(id => { const el = document.getElementById(id); el.classList.remove('visible'); el.classList.remove('highlight'); });
+            steps[0](); nextBtn.disabled = false;
+        }
+        nextBtn.addEventListener('click', nextStep); resetBtn.addEventListener('click', reset);
+        reset();
+    })();
+</script>
+</body>
+</html>
